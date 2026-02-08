@@ -53,7 +53,7 @@ object Decompile {
       }
 
       // TODO: options for handling whether to override the existing file
-      AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${compilationUnit}", false)
+      //AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${compilationUnit}", false)
 
       for (type in compilationUnit.types) {
         log.debug { "type: ${type.javaClass}" }
@@ -69,6 +69,8 @@ object Decompile {
           TODO()
         }
       }
+      // Write to .java file AFTER decompiling all method bodies
+      AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${compilationUnit}", false)
 
       log.debug { "compilationUnit\n${compilationUnit}" }
     }
