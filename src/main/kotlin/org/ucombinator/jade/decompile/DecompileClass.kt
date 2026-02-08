@@ -295,7 +295,8 @@ object DecompileClass {
       BlockStmt(), // body will be filled in later
       receiverParameter  // receiverParameter
     )
-    val body: BlockStmt? = DecompileMethodBody.decompileBody(classNode, node, dummyMethodDecl)
+    val isAbstractMethod = DecompileMethodBody.isAbstract(node) && node.name != "<init>" && node.name != "<clinit>"
+    val body: BlockStmt? = if (isAbstractMethod) null else DecompileMethodBody.decompileBody(classNode, node, dummyMethodDecl)
     
     @Suppress("NULLABLE_PROPERTY_TYPE") // TODO: temporary until we remove null (remove blank line above when we do)
     val bodyDeclaration = when (node.name) {
