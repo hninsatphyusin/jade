@@ -12,3 +12,9 @@ playground/output/
 
 # Devcontainer directory
 .devcontainer/
+
+# Intellj directory
+.idea
+
+# Build temporary testing and building directory
+/tmp
