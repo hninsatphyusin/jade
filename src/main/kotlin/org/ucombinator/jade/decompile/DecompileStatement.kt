@@ -68,7 +68,7 @@ object DecompileStatement {
    *
    * TODO:doc.
    */
-  fun make(cfg: ControlFlowGraph, ssa: StaticSingleAssignment, structure: Loops, classNode: ClassNode, thisVars: Set<String>): BlockStmt {
+  fun make(cfg: ControlFlowGraph, ssa: StaticSingleAssignment, structure: Loops, classNode: ClassNode): BlockStmt {
     // TODO: check for SCCs with multiple entry points
     // TODO: LocalClassDeclarationStmt
     val jumpTargets =
@@ -131,7 +131,7 @@ object DecompileStatement {
 
       fun simpleStmt(insn: Insn): Statement {
         // ASSUMPTION: we ignore allocs but implement the constructors
-        val (retVal, decompiled) = DecompileInsn.decompileInsn(insn.insn, ssa, classNode, thisVars)
+        val (retVal, decompiled) = DecompileInsn.decompileInsn(insn.insn, ssa, classNode)
         return when (decompiled) {
           is DecompiledInsn.If -> {
             // log.debug { "IF: " + decompiled.labelNode + "///" + decompiled.labelNode.getLabel }
@@ -188,7 +188,7 @@ object DecompileStatement {
         // TODO: constructor?
         pendingInside.remove(currentInsn)
         val outEdges = removeOutEdges(currentInsn!!)
-        val (_, decompiled) = DecompileInsn.decompileInsn(currentInsn!!.insn, ssa, classNode, thisVars)
+        val (_, decompiled) = DecompileInsn.decompileInsn(currentInsn!!.insn, ssa, classNode)
         val next = currentInsn?.next()
         val insnIsALoopHead =
           cfg.graph.incomingEdgesOf(currentInsn).any { structure.backEdges.contains(it) }

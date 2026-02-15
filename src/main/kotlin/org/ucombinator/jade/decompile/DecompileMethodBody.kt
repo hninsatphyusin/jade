@@ -9,7 +9,6 @@ import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.comments.BlockComment
 import com.github.javaparser.ast.expr.ObjectCreationExpr
 import com.github.javaparser.ast.expr.StringLiteralExpr
-import com.github.javaparser.ast.expr.ThisExpr
 import com.github.javaparser.ast.stmt.BlockStmt
 import com.github.javaparser.ast.stmt.EmptyStmt
 import com.github.javaparser.ast.stmt.Statement
@@ -22,7 +21,6 @@ import org.objectweb.asm.util.TraceMethodVisitor
 import org.ucombinator.jade.analysis.ControlFlowGraph
 import org.ucombinator.jade.analysis.Loops
 import org.ucombinator.jade.analysis.StaticSingleAssignment
-import org.ucombinator.jade.analysis.Var
 //import org.ucombinator.jade.analysis.Structure
 import org.ucombinator.jade.asm.Insn
 import org.ucombinator.jade.classfile.ClassName
@@ -39,26 +37,6 @@ import java.io.StringWriter
 /** Handles decompiling method bodies within classes. */
 object DecompileMethodBody {
   private val log = Log {}
-
-  /**
-   * Computes the set of variable names that represent "this".
-   * Includes "this", the parameter variable (local 0), and copy variables derived from it.
-   */
-  private fun computeThisVars(ssa: StaticSingleAssignment): Set<String> = buildSet {
-    add(ThisExpr().toString())
-    
-    val thisParam = ssa.insnVars.values
-      .flatMap { (retVar, argVars) -> listOfNotNull(retVar) + argVars }
-      .filterIsInstance<Var.Parameter>()
-      .find { it.local == 0 } ?: return@buildSet //if no "this", stop building the set
-    
-    add(thisParam.name)
-    
-    // Add copy variables that copy from thisParam 
-    ssa.insnVars.values
-      .filter { (retVar, argVars) -> thisParam in argVars && retVar is Var.Copy }
-      .forEach { (retVar, _) -> add(retVar.name) }
-  }
 
   /**
    * Returns a stub JavaParser BlockStmt with the given BlockComment and a throw statement with the given message. If either parameter is null, the given BlockStmt won't contain them.
@@ -280,8 +258,7 @@ object DecompileMethodBody {
 
       val logStatement = Log("statement") {}
       logStatement.debug { "**** Statement ****" }
-      val thisVars = computeThisVars(ssa)
-      val statement = DecompileStatement.make(cfg, ssa, structure, classNode, thisVars)
+      val statement = DecompileStatement.make(cfg, ssa, structure, classNode)
       logStatement.debug { statement }
       // TODO: add new pass
       val statement2 = RemoveUnusedLabels.make(statement)

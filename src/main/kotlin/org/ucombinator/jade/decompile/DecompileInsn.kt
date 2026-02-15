@@ -177,6 +177,19 @@ sealed class DecompiledInsn {
 
 /** Handles decompiling individual instructions. */
 object DecompileInsn {
+  /**
+   * Checks if a Var represents "this" by tracing back through SSA.
+   * A variable is "this" if it's Parameter(local=0) or a Copy derived from it.
+   */
+  private fun isThisVar(v: Var, ssa: StaticSingleAssignment): Boolean = when (v) {
+    is Var.Parameter -> v.local == 0
+    is Var.Copy -> ssa.insnVars.values
+      .find { (retVar, _) -> retVar == v }
+      ?.second?.firstOrNull()
+      ?.let { isThisVar(it, ssa) } ?: false
+    else -> false
+  }
+
   /** TODO:doc.
    *
    * @param variable TODO:doc
@@ -268,7 +281,7 @@ object DecompileInsn {
     "WRONG_WHITESPACE",
     "detekt:MaxLineLength",
   )
-  fun decompileInsn(node: AbstractInsnNode, ssa: StaticSingleAssignment, classNode: ClassNode, thisVars: Set<String>): Pair<Var?, DecompiledInsn> {
+  fun decompileInsn(node: AbstractInsnNode, ssa: StaticSingleAssignment, classNode: ClassNode): Pair<Var?, DecompiledInsn> {
     val (retVar, argVars) = ssa.insnVars.getOrElse(node, { Pair(null, listOf()) })
     val argsArray: Array<Expression> = argVars.map(::decompileVar).toTypedArray()
 
@@ -296,10 +309,9 @@ object DecompileInsn {
     fun superCall(node: AbstractInsnNode, classNode: ClassNode): DecompiledInsn {
       val (insn, argumentTypes, typeArguments) = call(node)
 
-      // declare a constant if asm dont have
-      // can use ==
-      var insnName = insn.name
-      if (insn.name == "<init>" && args(0).toString() in thisVars) {
+      // Check if this is a constructor call on "this" (super() or this())
+      val firstArg = argVars.firstOrNull()
+      if (insn.name == "<init>" && firstArg != null && isThisVar(firstArg, ssa)) {
         // check for <init> and nameExpr var refers to "this"?
         // refers to super call
         //TODO: need to further check target (super class or own constructor)
@@ -326,7 +338,7 @@ object DecompileInsn {
           MethodCallExpr(
             /*TODO: cast to insn.owner?*/ args(0),
             typeArguments,
-            insnName, //SuperExpr().toString()
+            insn.name, //SuperExpr().toString()
             NodeList(argumentTypes.indices.map { args(it + 1) }),
           )
         )
