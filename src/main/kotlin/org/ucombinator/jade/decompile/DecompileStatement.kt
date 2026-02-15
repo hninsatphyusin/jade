@@ -7,6 +7,7 @@ import com.github.javaparser.ast.stmt.*
 import org.jgrapht.graph.AsSubgraph
 import org.jgrapht.graph.MaskSubgraph
 import org.objectweb.asm.Type
+import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 import org.ucombinator.jade.analysis.*
 import org.ucombinator.jade.asm.Insn
@@ -67,7 +68,7 @@ object DecompileStatement {
    *
    * TODO:doc.
    */
-  fun make(cfg: ControlFlowGraph, ssa: StaticSingleAssignment, structure: Loops): BlockStmt {
+  fun make(cfg: ControlFlowGraph, ssa: StaticSingleAssignment, structure: Loops, classNode: ClassNode, thisVars: Set<String>): BlockStmt {
     // TODO: check for SCCs with multiple entry points
     // TODO: LocalClassDeclarationStmt
     val jumpTargets =
@@ -130,7 +131,7 @@ object DecompileStatement {
 
       fun simpleStmt(insn: Insn): Statement {
         // ASSUMPTION: we ignore allocs but implement the constructors
-        val (retVal, decompiled) = DecompileInsn.decompileInsn(insn.insn, ssa)
+        val (retVal, decompiled) = DecompileInsn.decompileInsn(insn.insn, ssa, classNode, thisVars)
         return when (decompiled) {
           is DecompiledInsn.If -> {
             // log.debug { "IF: " + decompiled.labelNode + "///" + decompiled.labelNode.getLabel }
@@ -187,7 +188,7 @@ object DecompileStatement {
         // TODO: constructor?
         pendingInside.remove(currentInsn)
         val outEdges = removeOutEdges(currentInsn!!)
-        val (_, decompiled) = DecompileInsn.decompileInsn(currentInsn!!.insn, ssa)
+        val (_, decompiled) = DecompileInsn.decompileInsn(currentInsn!!.insn, ssa, classNode, thisVars)
         val next = currentInsn?.next()
         val insnIsALoopHead =
           cfg.graph.incomingEdgesOf(currentInsn).any { structure.backEdges.contains(it) }
@@ -257,7 +258,8 @@ object DecompileStatement {
 
     val (stmt, pendingOutside) = structuredBlock(cfg.entry)
     assert(pendingOutside.isEmpty())
-    val variables = ssa.insnVars.values.map(Pair<Var, List<Var>>::first) + ssa.phiInputs.keys
+    val variables = (ssa.insnVars.values.map(Pair<Var, List<Var>>::first) + ssa.phiInputs.keys)
+      .filter { it != Var.Empty } // Filter out empty variables created for non-parameter locals
 
     fun decompileVarDecl(v: Var): Statement =
     // TODO: express mutability of variables in a better way

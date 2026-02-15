@@ -112,8 +112,19 @@ private class SsaInterpreter(val method: MethodNode) : Interpreter<Var>(Opcodes.
 
   override fun newValue(type: Type): Var = Errors.fatal("Impossible call of newValue on $type")
 
-  override fun newParameterValue(isInstanceMethod: Boolean, local: Int, type: Type): Var =
-    Var.Parameter(TypedBasicInterpreter.newValue(type)!!, local)
+  override fun newParameterValue(isInstanceMethod: Boolean, local: Int, type: Type): Var {
+    // Calculate how many actual parameters this method has
+    val argumentTypes = Type.getArgumentTypes(method.desc)
+    val parameterCount = argumentTypes.size + (if (isInstanceMethod) 1 else 0) // +1 for 'this'
+    
+    // Only create Parameter variables for actual method parameters
+    return if (local < parameterCount) {
+      Var.Parameter(TypedBasicInterpreter.newValue(type)!!, local)
+    } else {
+      // Non-parameter locals - use Empty to signal they're not real parameters
+      Var.Empty
+    }
+  }
 
   override fun newReturnTypeValue(type: Type): Var? {
     // ASM requires that we return null when type is Type.VOID_TYPE

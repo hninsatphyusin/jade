@@ -52,9 +52,6 @@ object Decompile {
         throw Exception("Invalid file name: file $classFileName does not end with .class")
       }
 
-      // TODO: options for handling whether to override the existing file
-      //AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${compilationUnit}", false)
-
       for (type in compilationUnit.types) {
         log.debug { "type: ${type.javaClass}" }
         if (type is ClassOrInterfaceDeclaration) {
@@ -69,7 +66,7 @@ object Decompile {
           TODO()
         }
       }
-      // Write to .java file AFTER decompiling all method bodies
+      // TODO: options for handling whether to override the existing file
       AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${compilationUnit}", false)
 
       log.debug { "compilationUnit\n${compilationUnit}" }

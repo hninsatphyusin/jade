@@ -4,6 +4,7 @@ import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.expr.SimpleName
 import com.github.javaparser.ast.stmt.*
+import com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt
 import org.ucombinator.jade.util.Errors
 import org.ucombinator.jade.util.Log
 
@@ -29,7 +30,7 @@ object RemoveUnusedLabels {
     is ContinueStmt -> node.label.orElse(null)?.let { setOf(it) } ?: emptySet()
     is DoStmt -> computeUsedLabels(node.body)
     is EmptyStmt -> emptySet()
-    // is ExplicitConstructorInvocationStmt ->
+    is ExplicitConstructorInvocationStmt -> emptySet()
     is ExpressionStmt -> computeUsedLabels(node.expression)
     is ForEachStmt -> computeUsedLabels(node.body)
     is ForStmt -> computeUsedLabels(node.body)
@@ -55,7 +56,7 @@ object RemoveUnusedLabels {
     is ContinueStmt -> node
     is DoStmt -> DoStmt(keepOnlyLabels(labels, node.body), node.condition)
     is EmptyStmt -> node
-    // is ExplicitConstructorInvocationStmt ->
+    is ExplicitConstructorInvocationStmt -> node
     is ExpressionStmt -> node
     is ForEachStmt -> ForEachStmt(node.variable, node.iterable, keepOnlyLabels(labels, node.body))
     is ForStmt -> ForStmt(node.initialization, node.compare.orElse(null), node.update, keepOnlyLabels(labels, node.body))
