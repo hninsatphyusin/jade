@@ -1,3 +1,7 @@
+/*
+ * Test case for private inner classes.
+ */
+
 public class PrivateInnerClassTest {
   int x = 10;
 

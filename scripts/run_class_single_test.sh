@@ -22,15 +22,24 @@ basename="${single_class_file_path##*/}"
 echo "-----------------------------"
 echo "Decompiling ${single_class_file_path}"
 
+# Find related inner class files (e.g. Foo$Bar.class for Foo.class)
+dir=$(dirname "${single_class_file_path}")
+class_name="${basename%.class}"
+# inner_class_files=$(find "${dir}" -name "${class_name}\$*.class" 2>/dev/null | tr '\n' ' ')
+inner_class_files=$(find "${dir}" -name "${class_name}\$*.class" 2>/dev/null | tr '\n' ' ')
+all_class_files="${single_class_file_path} ${inner_class_files}"
+
 # Start timer
 start=$SECONDS
 
-# decompile class files
-# V1: print debug to out.txt
+# decompile class files (include inner class files so they can be nested)
 # ./gradlew run --args="--log=debug decompile ${single_class_file_path} tmp" > out.txt
 
-# V2: no debug output
-./gradlew run --args="decompile ${single_class_file_path} tmp"
+# V1: original single file decompilation
+# ./gradlew run --args="decompile ${single_class_file_path} tmp"
+
+# V2: include inner class files
+./gradlew run --args="decompile ${all_class_files} tmp"
 
 echo "Done decompiling ${basename}"
 cd tmp

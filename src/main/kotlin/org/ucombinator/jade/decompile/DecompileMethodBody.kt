@@ -263,13 +263,15 @@ object DecompileMethodBody {
       // TODO: add new pass
       val statement2 = RemoveUnusedLabels.make(statement)
       val statement3 = FlattenBlocks.make(statement2)
+      /* 
       val statement4 = when (declaration) {
         is ConstructorDeclaration -> RewriteConstructorCalls.make(statement3)
         else -> statement3
       }
+        */
 
-      setDeclarationBody(declaration, BlockStmt(statement4))
-      return BlockStmt(statement4)
+      setDeclarationBody(declaration, BlockStmt(statement3))
+      return BlockStmt(statement3)
 //
 //      var statements : List<Statement> = mutableListOf()
 //      for (insn in method.instructions.toArray()) {

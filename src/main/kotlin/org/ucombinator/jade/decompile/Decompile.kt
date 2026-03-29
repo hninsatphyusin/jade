@@ -1,12 +1,12 @@
 package org.ucombinator.jade.decompile
 
 import com.github.javaparser.ast.CompilationUnit
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.util.Textifier
 import org.objectweb.asm.util.TraceClassVisitor
+import org.ucombinator.jade.classfile.ClassHierarchy
 import org.ucombinator.jade.util.AtomicWriteFile
 import org.ucombinator.jade.util.Log
 import org.ucombinator.jade.util.ReadFiles
@@ -34,42 +34,52 @@ object Decompile {
   fun main(files: List<File>, outputDir: File) {
     val readFiles = ReadFiles()
     for (file in files) readFiles.dir(file)
-    readFiles.result.entries.forEachIndexed { i, (filePath, bytes) ->
-      val file = filePath.last() // TODO: temporary code: multiple file paths due to nested archives
-      val classReader = ClassReader(bytes)
 
-      log.info { "Decompiling [${i + 1} of ${readFiles.result.size}] ${classReader.className} from ${filePath}" }
-      val compilationUnit = decompileClassReader(classReader)
+    val allParsed: Map<String, Pair<ClassNode, File>> = readFiles.result.entries.associate { (filePath, bytes) ->
+      val classNode = ClassNode(Opcodes.ASM9)
+      ClassReader(bytes).accept(classNode, ClassReader.EXPAND_FRAMES)  // TODO: Do we actually need ClassReader.EXPAND_FRAMES?
+      classNode.name to Pair(classNode, filePath.last())
+    }
+    val classList: Map<String, ClassNode> = allParsed.mapValues { it.value.first }
+    val filePathMap: Map<String, File> = allParsed.mapValues { it.value.second }
+    val compilationUnits: Map<String, CompilationUnit> = classList.mapValues { (_, classNode) ->
+      DecompileClass.decompileClass(classNode)
+    }
+    
+    val childrenMap: Map<String, List<String>> = classList.values
+      .flatMap { classNode ->
+        classNode.innerClasses
+          .filter { it.outerName == classNode.name && classList.containsKey(it.name) }
+          .map { classNode.name to it.name }
+      }
+      .groupBy({ it.first }, { it.second })
 
-      log.debug { "stubCompilationUnit\n${compilationUnit}" }
+    val hierarchy = ClassHierarchy(childrenMap)
 
-      // TODO: use class name to create directory hierarchy (may need CLI options to control this)
-      // Write to .java file of the same name as .class file (e.g. SampleClass.class -> SampleClass.java)
-      val suffix = Regex("\\.class$")
+    val suffix = Regex("\\.class$") //replace with endswith
+    val topLevelClasses = classList.keys.filter { hierarchy.isTopLevel(it) }
+
+    fun nestChildren(parent: String) {
+      //order in which same level inner classes are stitched back might be arbitrary because of the DFS
+      //check whether the order in which same level inner classes are stitched back matters or not
+      for (child in hierarchy.childrenOf(parent)) {
+        nestChildren(child)
+        NestInnerClasses.nestChild(parent, child, compilationUnits)
+      }
+    }
+
+    topLevelClasses.forEachIndexed { i, topLevel ->
+      nestChildren(topLevel)
+
+      val file = filePathMap[topLevel]!!
+      log.info { "Writing top-level class [${i + 1} of ${topLevelClasses.size}] $topLevel" }
+      val cu = compilationUnits[topLevel]!!
       val classFileName = file.getName()
-
       if (!classFileName.contains(suffix)) {
         throw Exception("Invalid file name: file $classFileName does not end with .class")
       }
-
-      for (type in compilationUnit.types) {
-        log.debug { "type: ${type.javaClass}" }
-        if (type is ClassOrInterfaceDeclaration) {
-          val classNode = type.getData(DecompileClass.CLASS_NODE)!!
-          // TODO: for (callable in type.members.iterator().filterIsInstance<CallableDeclaration<*>>()) {
-          for (callable in type.constructors + type.methods) {
-            val methodNode = callable.getData(DecompileClass.METHOD_NODE)!!
-            DecompileMethodBody.decompileBody(classNode, methodNode, callable)
-            log.debug { "method: $callable" }
-          }
-        } else {
-          TODO()
-        }
-      }
-      // TODO: options for handling whether to override the existing file
-      AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${compilationUnit}", false)
-
-      log.debug { "compilationUnit\n${compilationUnit}" }
+      AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${cu}".toByteArray(), false)
+      log.debug { "compilationUnit\n${cu}" }
     }
 
     // for (((name, readers), classIndex) <- VFS.classes.zipWithIndex) {

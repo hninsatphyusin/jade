@@ -1,5 +1,5 @@
 /*
- * Test case for inner (non-static member) classes.
+ * Test case for public inner classes.
  */
 
 public class PublicInnerClassTest {
@@ -8,7 +8,7 @@ public class PublicInnerClassTest {
     // Non-static inner class
     public class InnerClass {
         public void display() {
-            System.out.println("Accessing: " + outerField);
+            System.out.println(outerField);
         }
     }
     
