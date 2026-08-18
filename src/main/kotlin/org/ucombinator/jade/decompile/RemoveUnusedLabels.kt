@@ -10,9 +10,11 @@ import org.ucombinator.jade.util.Log
 
 object RemoveUnusedLabels {
   private val log = Log {}
+  var labels: Set<SimpleName> = setOf()
 
   fun make(statement: Statement): Statement {
     val usedLabels = computeUsedLabels(statement)
+    labels = usedLabels
     println("labels used: ${usedLabels}")
     return keepOnlyLabels(usedLabels, statement)
   }

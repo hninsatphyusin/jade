@@ -78,8 +78,31 @@ object Decompile {
       if (!classFileName.contains(suffix)) {
         throw Exception("Invalid file name: file $classFileName does not end with .class")
       }
+<<<<<<< HEAD
       AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${cu}".toByteArray(), false)
       log.debug { "compilationUnit\n${cu}" }
+=======
+
+      // TODO: options for handling whether to override the existing file
+      AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${compilationUnit}", false)
+
+      for (type in compilationUnit.types) {
+        log.debug { "type: ${type.javaClass}" }
+        if (type is ClassOrInterfaceDeclaration) {
+          val classNode = type.getData(DecompileClass.CLASS_NODE)!!
+          // TODO: for (callable in type.members.iterator().filterIsInstance<CallableDeclaration<*>>()) {
+          for (callable in type.constructors + type.methods) {
+            val methodNode = callable.getData(DecompileClass.METHOD_NODE)!!
+//            DecompileMethodBody.decompileBody(classNode, methodNode, callable)
+            log.debug { "method: $callable" }
+          }
+        } else {
+          TODO()
+        }
+      }
+
+      log.debug { "compilationUnit\n${compilationUnit}" }
+>>>>>>> 34483e1e9c3abaeb0c360643060603bcd2a93d98
     }
 
     // for (((name, readers), classIndex) <- VFS.classes.zipWithIndex) {

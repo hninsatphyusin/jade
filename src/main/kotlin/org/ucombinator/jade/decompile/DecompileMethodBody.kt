@@ -1,27 +1,33 @@
 package org.ucombinator.jade.decompile
 
+//import org.ucombinator.jade.analysis.Structure
+import com.github.javaparser.StaticJavaParser
+import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.Modifier
+import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.body.BodyDeclaration
 import com.github.javaparser.ast.body.ConstructorDeclaration
 import com.github.javaparser.ast.body.InitializerDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.comments.BlockComment
-import com.github.javaparser.ast.expr.ObjectCreationExpr
-import com.github.javaparser.ast.expr.StringLiteralExpr
+import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.BlockStmt
 import com.github.javaparser.ast.stmt.EmptyStmt
 import com.github.javaparser.ast.stmt.Statement
 import com.github.javaparser.ast.stmt.ThrowStmt
+import com.github.javaparser.resolution.types.ResolvedType
+import com.github.javaparser.symbolsolver.JavaSymbolSolver
+import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
-import org.objectweb.asm.Opcodes
 import org.objectweb.asm.util.Textifier
 import org.objectweb.asm.util.TraceMethodVisitor
 import org.ucombinator.jade.analysis.ControlFlowGraph
 import org.ucombinator.jade.analysis.Loops
 import org.ucombinator.jade.analysis.StaticSingleAssignment
-//import org.ucombinator.jade.analysis.Structure
 import org.ucombinator.jade.asm.Insn
 import org.ucombinator.jade.classfile.ClassName
 import org.ucombinator.jade.javaparser.JavaParser
@@ -29,8 +35,6 @@ import org.ucombinator.jade.jgrapht.GraphViz
 import org.ucombinator.jade.jgrapht.dominator.Dominator
 import org.ucombinator.jade.util.Errors
 import org.ucombinator.jade.util.Log
-import java.io.FileWriter
-import java.io.IOException
 import java.io.PrintWriter
 import java.io.StringWriter
 
@@ -209,6 +213,7 @@ object DecompileMethodBody {
       val cfg = ControlFlowGraph.make(classNode.name, method)
 
       logCfg.debug { "++++ cfg ++++\n${GraphViz.toString(cfg)}" }
+//      println("cfg ======= \n ${GraphViz.toString(cfg)}")
       for (v in cfg.graph.vertexSet()) {
         logCfg.debug { "v: ${cfg.graph.incomingEdgesOf(v).size}: $v" }
       }
@@ -232,7 +237,7 @@ object DecompileMethodBody {
 
       val logSSAMap = Log("ssa.map") {}
       logSSAMap.debug { "++++ ssa map ++++" }
-      for ((key, value) in ssa.phiInputs) {
+      for ((key, value) in ssa.insnVars) {
         logSSAMap.debug { "ssa: $key -> $value" }
       }
 
@@ -250,14 +255,16 @@ object DecompileMethodBody {
       logDomNesting.debug { "++++ dominator nesting ++++\n${GraphViz.nestingTree(cfg.graphWithExceptions, doms.tree, cfg.entry)}" }
       val logStructure = Log("structure") {}
       logStructure.debug { "**** Structure ****" }
-
+     println("domtree: \n ${GraphViz.toString(doms.tree)}")
+     println(GraphViz.nestingTree(cfg.graphWithExceptions, doms.tree, cfg.entry))
       val structure = Loops.make(cfg)
       logStructure.debug { "++++ structure nesting graph ++++\n${GraphViz.toString(structure.nesting)}" }
-
+//      println("nesting ${GraphViz.toString(structure.nesting)}")
       // TODO: JEP 334: JVM Constants API: https://openjdk.java.net/jeps/334
 
       val logStatement = Log("statement") {}
       logStatement.debug { "**** Statement ****" }
+<<<<<<< HEAD
       val statement = DecompileStatement.make(cfg, ssa, structure, classNode)
       logStatement.debug { statement }
       // TODO: add new pass
@@ -272,6 +279,27 @@ object DecompileMethodBody {
 
       setDeclarationBody(declaration, BlockStmt(statement3))
       return BlockStmt(statement3)
+=======
+      println(" within the class :${classNode.name} ${(method.access and Opcodes.ACC_STATIC) != 0}")
+
+
+
+      val statement = DecompileStatement.make(cfg, ssa, structure, classNode)
+      logStatement.debug { statement }
+      // TODO: add new pass
+//      DecompileInsn.replaceSuper(statement)
+      val statement3 = RemoveUnusedLabels.make(statement)
+      val statement4 = FlattenBlocks.make(statement3)
+//      CleanupVars.make(BlockStmt(statement4), classNode, method, ssa.phiInputs)
+      val propagated = Propogation.make(BlockStmt(statement4), ssa.phiInputs)
+      val eliminated = Elimination.make(propagated)
+      // setDeclarationBody(declaration, propagated)
+      setDeclarationBody(declaration, eliminated)
+      // setDeclarationBody(declaration, BlockStmt(statement4))     
+      // return propagated
+      return eliminated
+    //  return BlockStmt(statement4)
+>>>>>>> 34483e1e9c3abaeb0c360643060603bcd2a93d98
 //
 //      var statements : List<Statement> = mutableListOf()
 //      for (insn in method.instructions.toArray()) {

@@ -198,9 +198,13 @@ object DecompileClass {
     val isVarArgs = Flag.methodFlags(method.access).contains(Flag.ACC_VARARGS) && index == paramCount - 1
     val varArgsAnnotations = NodeList<AnnotationExpr>() // TODO?
     // TODO: make consistent with analysis.ParameterVar
+<<<<<<< HEAD
     val isStatic = Flag.methodFlags(method.access).contains(Flag.ACC_STATIC) //nameindex = 0 or valid index to the pool table, access flags can be synthetic/mandated
     // TODO: class files decompiled with the -parameters flags may contain original parameter name
     val name = SimpleName(if (node == null) "parameterVar${ if (isStatic) index + 1 else index + 2}" else node.name)
+=======
+    val name = SimpleName(if (node == null) "parameterVar${index + 1}" else node.name)
+>>>>>>> 34483e1e9c3abaeb0c360643060603bcd2a93d98
     return Parameter(modifiers, annotations, type, isVarArgs, varArgsAnnotations, name)
   }
 
