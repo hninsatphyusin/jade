@@ -264,22 +264,6 @@ object DecompileMethodBody {
 
       val logStatement = Log("statement") {}
       logStatement.debug { "**** Statement ****" }
-<<<<<<< HEAD
-      val statement = DecompileStatement.make(cfg, ssa, structure, classNode)
-      logStatement.debug { statement }
-      // TODO: add new pass
-      val statement2 = RemoveUnusedLabels.make(statement)
-      val statement3 = FlattenBlocks.make(statement2)
-      /* 
-      val statement4 = when (declaration) {
-        is ConstructorDeclaration -> RewriteConstructorCalls.make(statement3)
-        else -> statement3
-      }
-        */
-
-      setDeclarationBody(declaration, BlockStmt(statement3))
-      return BlockStmt(statement3)
-=======
       println(" within the class :${classNode.name} ${(method.access and Opcodes.ACC_STATIC) != 0}")
 
 
@@ -299,7 +283,6 @@ object DecompileMethodBody {
       // return propagated
       return eliminated
     //  return BlockStmt(statement4)
->>>>>>> 34483e1e9c3abaeb0c360643060603bcd2a93d98
 //
 //      var statements : List<Statement> = mutableListOf()
 //      for (insn in method.instructions.toArray()) {

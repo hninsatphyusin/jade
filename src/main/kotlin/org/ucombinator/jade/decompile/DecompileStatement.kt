@@ -228,8 +228,8 @@ object DecompileStatement {
       for ((_, vars) in ssa.insnVars) {
         val (target, source) = vars
         source.forEach { v ->
-          if (v is Var.Parameter && v.local == 0) {
-            // check if at index 0, is "this"
+          if (v is Var.Parameter && v.isThis) {
+            // Track copies of the receiver as aliases of "this".
             // add the name of variable assigned to
             thisVars.add(target.name)
           }

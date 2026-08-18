@@ -179,10 +179,11 @@ sealed class DecompiledInsn {
 object DecompileInsn {
   /**
    * Checks if a Var represents "this" by tracing back through SSA.
-   * A variable is "this" if it's Parameter(local=0) or a Copy derived from it.
+   * A variable is "this" if it is the receiver parameter of an instance method or a Copy derived
+   * from it.
    */
   private fun isThisVar(v: Var, ssa: StaticSingleAssignment): Boolean = when (v) {
-    is Var.Parameter -> v.local == 0
+    is Var.Parameter -> v.isThis
     is Var.Copy -> ssa.insnVars.values
       .find { (retVar, _) -> retVar == v }
       ?.second?.firstOrNull()
@@ -195,15 +196,9 @@ object DecompileInsn {
    * @param variable TODO:doc
    * @return TODO:doc
    */
-  fun decompileVar(variable: Var): Expression {
-// return expression
-    // check if param var index 1 and if in static method, add parameters maybe
-    if (variable is Var.Parameter && variable.local == 0) {
-      return ThisExpr() // change to "this"
-    }
-    return NameExpr(variable.name)
-  }
-  
+  fun decompileVar(variable: Var): Expression =
+    if (variable is Var.Parameter && variable.isThis) ThisExpr() else NameExpr(variable.name)
+
   /** TODO:doc.
    *
    * @param retVar TODO:doc

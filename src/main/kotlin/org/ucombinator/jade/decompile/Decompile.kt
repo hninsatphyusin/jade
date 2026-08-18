@@ -78,10 +78,6 @@ object Decompile {
       if (!classFileName.contains(suffix)) {
         throw Exception("Invalid file name: file $classFileName does not end with .class")
       }
-<<<<<<< HEAD
-      AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${cu}".toByteArray(), false)
-      log.debug { "compilationUnit\n${cu}" }
-=======
 
       // TODO: options for handling whether to override the existing file
       AtomicWriteFile.write(File(outputDir, classFileName.replace(suffix, ".java")), "${compilationUnit}", false)
@@ -102,7 +98,6 @@ object Decompile {
       }
 
       log.debug { "compilationUnit\n${compilationUnit}" }
->>>>>>> 34483e1e9c3abaeb0c360643060603bcd2a93d98
     }
 
     // for (((name, readers), classIndex) <- VFS.classes.zipWithIndex) {
