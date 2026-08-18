@@ -17,7 +17,7 @@ object FlattenBlocks { // TODO: rename to FlattenBlocks
     is ContinueStmt -> NodeList(node)
     is DoStmt -> make(node.body)
     is EmptyStmt -> NodeList(node) // commented out ones with the ;
-    // is ExplicitConstructorInvocationStmt -> 
+    is ExplicitConstructorInvocationStmt -> NodeList(node)
     is ExpressionStmt -> NodeList(node)
     is ForEachStmt -> make(node.body)
     is ForStmt -> make(node.body)
