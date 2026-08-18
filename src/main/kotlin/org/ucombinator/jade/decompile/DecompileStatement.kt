@@ -2,11 +2,13 @@ package org.ucombinator.jade.decompile
 
 import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.expr.BooleanLiteralExpr
+import com.github.javaparser.ast.expr.NameExpr
 import com.github.javaparser.ast.expr.VariableDeclarationExpr
 import com.github.javaparser.ast.stmt.*
 import org.jgrapht.graph.AsSubgraph
 import org.jgrapht.graph.MaskSubgraph
 import org.objectweb.asm.Type
+import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 import org.ucombinator.jade.analysis.*
 import org.ucombinator.jade.asm.Insn
@@ -67,7 +69,7 @@ object DecompileStatement {
    *
    * TODO:doc.
    */
-  fun make(cfg: ControlFlowGraph, ssa: StaticSingleAssignment, structure: Loops): BlockStmt {
+  fun make(cfg: ControlFlowGraph, ssa: StaticSingleAssignment, structure: Loops, classNode: ClassNode): BlockStmt {
     // TODO: check for SCCs with multiple entry points
     // TODO: LocalClassDeclarationStmt
     val jumpTargets =
@@ -102,6 +104,7 @@ object DecompileStatement {
       // NOTE: We use TreeSet so we have `minOption()`
       // var pendingInside = TreeSet<Insn>()
       var pendingInside = sortedSetOf<Insn>()
+      val thisVars = mutableSetOf<String>()
 
       // worklist of vertexes with no more incoming edges that are outside the current loop (back
       // edges do not count)
@@ -130,7 +133,10 @@ object DecompileStatement {
 
       fun simpleStmt(insn: Insn): Statement {
         // ASSUMPTION: we ignore allocs but implement the constructors
-        val (retVal, decompiled) = DecompileInsn.decompileInsn(insn.insn, ssa)
+        val (retVal, decompiled) = DecompileInsn.decompileInsn(insn.insn, ssa, classNode, thisVars)
+
+//        println("simple statement with { $insn    $retVal     $decompiled }")
+
         return when (decompiled) {
           is DecompiledInsn.If -> {
             // log.debug { "IF: " + decompiled.labelNode + "///" + decompiled.labelNode.getLabel }
@@ -187,7 +193,7 @@ object DecompileStatement {
         // TODO: constructor?
         pendingInside.remove(currentInsn)
         val outEdges = removeOutEdges(currentInsn!!)
-        val (_, decompiled) = DecompileInsn.decompileInsn(currentInsn!!.insn, ssa)
+        val (_, decompiled) = DecompileInsn.decompileInsn(currentInsn!!.insn, ssa, classNode, thisVars)
         val next = currentInsn?.next()
         val insnIsALoopHead =
           cfg.graph.incomingEdgesOf(currentInsn).any { structure.backEdges.contains(it) }
@@ -216,6 +222,19 @@ object DecompileStatement {
                 BlockStmt(NodeList<Statement>(currentStmt, BreakStmt(blockLabelString(next!!))))
             }
             pendingInside.first()
+          }
+        }
+      }
+
+
+      // TODO: improve checking and do similar for new
+      for ((_, vars) in ssa.insnVars) {
+        val (target, source) = vars
+        source.forEach { v ->
+          if (v is Var.Parameter && v.local == 0) {
+            // check if at index 0, is "this"
+            // add the name of variable assigned to
+            thisVars.add(target.name)
           }
         }
       }

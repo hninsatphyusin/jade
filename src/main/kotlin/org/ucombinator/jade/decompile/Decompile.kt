@@ -62,7 +62,7 @@ object Decompile {
           // TODO: for (callable in type.members.iterator().filterIsInstance<CallableDeclaration<*>>()) {
           for (callable in type.constructors + type.methods) {
             val methodNode = callable.getData(DecompileClass.METHOD_NODE)!!
-            DecompileMethodBody.decompileBody(classNode, methodNode, callable)
+//            DecompileMethodBody.decompileBody(classNode, methodNode, callable)
             log.debug { "method: $callable" }
           }
         } else {
