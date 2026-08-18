@@ -198,7 +198,7 @@ object DecompileClass {
     val isVarArgs = Flag.methodFlags(method.access).contains(Flag.ACC_VARARGS) && index == paramCount - 1
     val varArgsAnnotations = NodeList<AnnotationExpr>() // TODO?
     // TODO: make consistent with analysis.ParameterVar
-    val name = SimpleName(if (node == null) "parameter${index + 1}" else node.name)
+    val name = SimpleName(if (node == null) "parameterVar${index + 1}" else node.name)
     return Parameter(modifiers, annotations, type, isVarArgs, varArgsAnnotations, name)
   }
 
